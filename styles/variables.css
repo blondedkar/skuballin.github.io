@@ -1,0 +1,16 @@
+:root {
+  --color-background: #062343;
+  --color-foreground: #f4f6fe;
+  --color-surface: rgba(23, 47, 118, 0.72);
+  --color-surface-strong: #172f76;
+  --color-border: rgba(244, 246, 254, 0.12);
+  --color-accent: #fc4616;
+  --color-accent-soft: #f14b1d75;
+  --color-extra: #2e62e7;
+  --color-extra-2: #172f76;
+  --color-extra-3: #353740;
+  --color-extra-4: #010c48;
+  --color-muted: rgba(244, 246, 254, 0.72);
+  --tracking-header: 0.08em;
+  --tracking-owners-medium: 0.06em;
+}
