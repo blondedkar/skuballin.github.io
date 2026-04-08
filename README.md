@@ -9,6 +9,9 @@ ALL FONTS USED ARE PERMITTED AND FREE TO USE FOR PERSONAL USE; I AM NOT AFFILIAT
 
 # Style Guide
 
+Programming is using the official typescript style guide https://ts.dev/style/ 
+I come from a bad habit of using PascalCasing so it might ocassionally slip in here and there. 
+
 PRIMARY FONT: Owners
 HEADERS: HEADER-FONT
 

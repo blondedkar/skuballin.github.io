@@ -9,6 +9,8 @@ import { LenisProvider } from "@/components/providers/LenisProvider";
 import "@/styles/globals.css";
 import "@/styles/variables.css";
 
+//global styles for fonts mainly for consistency
+
 const headerFont = localFont({
   src: "./fonts/Header.otf",
   variable: "--font-header",

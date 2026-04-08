@@ -286,16 +286,16 @@ export function LandingTransition({ children }: { children: ReactNode }) {
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
           >
-            <defs>
+            <defs>{/*needs to be overhauled i do not like how it looks currently NOT URGENT*/}
               <mask id={maskId} maskUnits="userSpaceOnUse">
                 <rect width="100" height="100" fill="white" />
                 <foreignObject width="100" height="100" className={styles.portalObject}>
                   <div className={styles.portalCenter}>
-                    <svg
+                    <svg 
                       viewBox="0 0 500 500"
                       preserveAspectRatio="xMidYMid meet"
-                      className={`${styles.portalSvg} ${rotating ? styles.portalSvgRotating : ""}`}
-                    >
+                      className={`${styles.portalSvg} ${rotating ? styles.portalSvgRotating : ""}`} 
+                    > 
                       <path
                         d={SVG_PATH}
                         className={`${styles.portalCutout} ${maskVisible ? styles.portalCutoutVisible : ""}`}

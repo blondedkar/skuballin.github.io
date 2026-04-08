@@ -1,47 +1,84 @@
 .page {
+  --pointer-x: 0;
+  --pointer-y: 0;
   position: relative;
   min-height: 100svh;
   background: transparent;
   overflow: clip;
 }
 
-.bottomBanner {
-  position: fixed;
+.floatingPhraseLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: clip;
+  perspective: 2200px;
+  perspective-origin: 50% 50%;
+  transform-style: preserve-3d;
+}
+
+.floatingPhraseItem {
+  position: absolute;
+  top: var(--phrase-top);
   left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 5;
-  overflow: hidden;
-  border-top: 1px solid rgba(244, 246, 254, 0.14);
-  background: linear-gradient(90deg, rgba(1, 12, 72, 0.92), rgba(23, 47, 118, 0.88));
-  backdrop-filter: blur(10px);
+  will-change: transform, opacity, filter;
+  transform:
+    translate3d(
+      calc(var(--phrase-start-x) + (var(--pointer-x) * 1rem * var(--parallax-x-strength))),
+      calc(var(--phrase-drift-y) + (var(--pointer-y) * 1rem * var(--parallax-y-strength))),
+      0
+    )
+    rotate(var(--phrase-rotate))
+    rotateX(var(--phrase-rotate-x))
+    rotateY(var(--phrase-rotate-y))
+    skewX(var(--phrase-skew-x))
+    scale(var(--phrase-start-scale));
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  animation: floatPhrase var(--phrase-duration) cubic-bezier(0.3, 0, 0.18, 1) infinite;
+  animation-delay: var(--phrase-delay);
 }
 
-.bottomBannerTrack {
-  display: flex;
-  width: max-content;
-  align-items: center;
-  gap: 7rem;
-  padding: 0.9rem 0;
-  animation: bannerDrift 24s linear infinite;
+.floatingPhraseRipple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(14rem, 24vw, 28rem);
+  height: clamp(2.5rem, 4.2vw, 5rem);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 22% 50%, rgba(244, 246, 254, 0.2), transparent 30%),
+    radial-gradient(circle at 50% 50%, rgba(46, 98, 231, 0.18), transparent 44%),
+    radial-gradient(circle at 78% 50%, rgba(252, 70, 22, 0.16), transparent 30%);
+  opacity: calc(var(--phrase-opacity) * 1.55);
+  mix-blend-mode: screen;
+  filter: blur(16px) saturate(1.2);
+  transform:
+    translate(-50%, -50%)
+    rotateX(calc(var(--phrase-rotate-x) * 0.5))
+    rotateY(calc(var(--phrase-rotate-y) * 0.5))
+    scaleX(calc(var(--ripple-scale) * 1.55))
+    scaleY(var(--ripple-scale))
+    rotate(var(--ripple-tilt));
 }
 
-.bottomBannerGroup {
-  display: flex;
-  align-items: center;
-  gap: 7rem;
-  flex: none;
-}
-
-.bottomBannerText {
-  flex: none;
+.floatingPhrase {
+  position: relative;
   font-family: var(--font-accent), sans-serif;
-  font-size: clamp(0.95rem, 1.4vw, 1.45rem);
-  line-height: 1;
-  letter-spacing: 0.18em;
+  font-size: clamp(1rem, calc(0.8rem + 1vw), var(--phrase-size));
+  line-height: 0.92;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
-  color: rgba(244, 246, 254, 0.95);
+  color: rgba(244, 246, 254, 0.94);
+  opacity: var(--phrase-opacity);
   white-space: nowrap;
+  text-shadow:
+    0 0.1em 1.2em rgba(1, 12, 72, 0.18),
+    0 0 2.8rem rgba(46, 98, 231, 0.08);
+  mix-blend-mode: screen;
+  filter: blur(0.1px);
+  transform: translateZ(1px);
 }
 
 .markDock {
@@ -65,6 +102,7 @@
   min-height: 100svh;
   display: grid;
   place-items: center;
+  z-index: 2;
   padding: clamp(2rem, 3vw, 3rem) clamp(0.25rem, 1vw, 0.75rem) clamp(0.25rem, 1vw, 0.75rem);
 }
 
@@ -126,6 +164,7 @@
   letter-spacing: 0.045em;
   text-transform: uppercase;
   white-space: nowrap;
+  cursor: default;
 }
 
 .heroTitleUnder {
@@ -208,13 +247,90 @@
   }
 }
 
-@keyframes bannerDrift {
-  from {
-    transform: translateX(0);
+@keyframes floatPhrase {
+  0% {
+    transform:
+      translate3d(
+        calc(var(--phrase-start-x) + (var(--pointer-x) * 1rem * var(--parallax-x-strength))),
+        calc(var(--phrase-drift-y) + (var(--pointer-y) * 1rem * var(--parallax-y-strength))),
+        0
+      )
+      rotate(var(--phrase-rotate))
+      rotateX(var(--phrase-rotate-x))
+      rotateY(var(--phrase-rotate-y))
+      skewX(var(--phrase-skew-x))
+      scale(var(--phrase-start-scale));
+    opacity: 0;
+    filter: blur(8px);
   }
 
-  to {
-    transform: translateX(calc(-33.333% - 0.8rem));
+  16% {
+    transform:
+      translate3d(
+        calc(var(--phrase-drift-x) + (var(--pointer-x) * 1rem * var(--parallax-x-strength))),
+        calc(var(--phrase-drift-y) + (var(--pointer-y) * 1rem * var(--parallax-y-strength))),
+        0
+      )
+      rotate(calc(var(--phrase-rotate) * 0.72))
+      rotateX(calc(var(--phrase-rotate-x) * 0.7))
+      rotateY(calc(var(--phrase-rotate-y) * 0.82))
+      skewX(calc(var(--phrase-skew-x) * 0.8))
+      scale(calc((var(--phrase-start-scale) + var(--phrase-settle-scale)) / 2));
+    opacity: 0.72;
+    filter: blur(2px);
+  }
+
+  42% {
+    transform:
+      translate3d(
+        calc(var(--phrase-settle-x) + (var(--pointer-x) * 1rem * var(--parallax-x-strength))),
+        calc(var(--phrase-settle-y) + (var(--pointer-y) * 1rem * var(--parallax-y-strength))),
+        0
+      )
+      rotate(calc(var(--phrase-rotate) * 0.42))
+      rotateX(calc(var(--phrase-rotate-x) * 0.08))
+      rotateY(calc(var(--phrase-rotate-y) * 0.08))
+      skewX(calc(var(--phrase-skew-x) * 0.12))
+      scale(var(--phrase-settle-scale));
+    opacity: 1;
+    filter: blur(0.25px);
+  }
+
+  68% {
+    transform:
+      translate3d(
+        calc(var(--phrase-glide-x) + (var(--pointer-x) * 1rem * var(--parallax-x-strength))),
+        calc(var(--phrase-glide-y) + (var(--pointer-y) * 1rem * var(--parallax-y-strength))),
+        0
+      )
+      rotate(calc(var(--phrase-rotate) * 0.68))
+      rotateX(calc(var(--phrase-rotate-x) * 0.42))
+      rotateY(calc(var(--phrase-rotate-y) * 0.44))
+      skewX(calc(var(--phrase-skew-x) * 0.3))
+      scale(var(--phrase-glide-scale));
+    opacity: 0.92;
+    filter: blur(0.4px);
+  }
+
+  86% {
+    opacity: 0.62;
+    filter: blur(1.6px);
+  }
+
+  100% {
+    transform:
+      translate3d(
+        calc(var(--phrase-end-x) + (var(--pointer-x) * 1rem * var(--parallax-x-strength))),
+        calc(var(--phrase-end-y) + (var(--pointer-y) * 1rem * var(--parallax-y-strength))),
+        0
+      )
+      rotate(var(--phrase-rotate))
+      rotateX(var(--phrase-rotate-x))
+      rotateY(calc(var(--phrase-rotate-y) * 0.78))
+      skewX(calc(var(--phrase-skew-x) * 0.38))
+      scale(var(--phrase-end-scale));
+    opacity: 0;
+    filter: blur(8px);
   }
 }
 
@@ -250,18 +366,14 @@
     transform: translate(-50%, -37%);
   }
 
-  .bottomBannerTrack {
-    gap: 4rem;
-    padding: 0.75rem 0;
-    animation-duration: 20s;
+  .floatingPhraseRipple {
+    width: clamp(10rem, 34vw, 15rem);
+    height: clamp(2rem, 7vw, 3.4rem);
+    filter: blur(14px) saturate(1.12);
   }
 
-  .bottomBannerGroup {
-    gap: 4rem;
-  }
-
-  .bottomBannerText {
-    font-size: clamp(0.82rem, 3.2vw, 1rem);
-    letter-spacing: 0.14em;
+  .floatingPhrase {
+    letter-spacing: 0.07em;
+    opacity: calc(var(--phrase-opacity) + 0.03);
   }
 }
