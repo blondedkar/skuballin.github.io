@@ -6,6 +6,8 @@ html,
 body {
   width: 100%;
   min-height: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 body {
@@ -15,6 +17,11 @@ body {
   font-family: var(--font-owners), sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
 
 * {

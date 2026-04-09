@@ -13,6 +13,10 @@ const wait = (duration: number) =>
     window.setTimeout(resolve, duration);
   });
 
+const withTimeout = async (promise: Promise<void>, duration: number) => {
+  await Promise.race([promise, wait(duration)]);
+};
+
 const waitForWindowLoad = () =>
   new Promise<void>((resolve) => {
     if (document.readyState === "complete") {
@@ -48,7 +52,7 @@ const waitForMedia = async (root: HTMLElement | null) => {
       (node) =>
         new Promise<void>((resolve) => {
           if (node instanceof HTMLImageElement) {
-            if (node.complete) {
+            if (node.complete && node.naturalWidth > 0) {
               resolve();
               return;
             }
@@ -87,11 +91,11 @@ const waitForMedia = async (root: HTMLElement | null) => {
   );
 };
 
-const waitForPageReadiness = async (root: HTMLElement | null) => {
+const waitForPageAssets = async (root: HTMLElement | null) => {
   await Promise.all([
-    waitForWindowLoad(),
-    waitForFonts(),
-    waitForMedia(root),
+    withTimeout(waitForWindowLoad(), 2500),
+    withTimeout(waitForFonts(), 2500),
+    withTimeout(waitForMedia(root), 3500),
   ]);
 };
 
@@ -105,29 +109,20 @@ const getViewportSignature = () => {
   return `${breakpoint}-${orientation}`;
 };
 
+type Phase = "loading" | "revealing" | "done";
+
 export function LandingTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [isReady, setIsReady] = useState(false);
-  const [overlayVisible, setOverlayVisible] = useState(true);
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [drawVisible, setDrawVisible] = useState(false);
   const [fillVisible, setFillVisible] = useState(false);
-  const [maskVisible, setMaskVisible] = useState(false);
-  const [rotating, setRotating] = useState(false);
   const [sequenceKey, setSequenceKey] = useState(0);
   const viewportSignatureRef = useRef<string | null>(null);
   const hasMountedRef = useRef(false);
-  const pathRef = useRef<SVGPathElement>(null);
   const pageShellRef = useRef<HTMLDivElement>(null);
   const maskId = useId().replace(/:/g, "");
 
   useEffect(() => {
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reducedMotion) {
-      setIsReady(true);
-      setOverlayVisible(false);
-      return;
-    }
-
     const currentSignature = getViewportSignature();
 
     if (!hasMountedRef.current) {
@@ -141,12 +136,6 @@ export function LandingTransition({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reducedMotion) {
-      return;
-    }
-
     const handleResize = () => {
       const nextSignature = getViewportSignature();
 
@@ -168,12 +157,6 @@ export function LandingTransition({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reducedMotion) {
-      return;
-    }
-
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
     const previousTransitionLock = document.body.dataset.transitionLock;
@@ -182,12 +165,9 @@ export function LandingTransition({ children }: { children: ReactNode }) {
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
     document.body.dataset.transitionLock = "true";
-
-    setIsReady(false);
-    setOverlayVisible(true);
+    setPhase("loading");
+    setDrawVisible(false);
     setFillVisible(false);
-    setMaskVisible(false);
-    setRotating(false);
 
     const cleanup = () => {
       document.documentElement.style.overflow = previousHtmlOverflow;
@@ -201,34 +181,18 @@ export function LandingTransition({ children }: { children: ReactNode }) {
     };
 
     const runSequence = async () => {
-      const pathNode = pathRef.current;
+      await Promise.all([
+        waitForPageAssets(pageShellRef.current),
+        wait(300),
+      ]);
 
-      if (!pathNode) {
-        setIsReady(true);
-        setOverlayVisible(false);
-        cleanup();
+      if (cancelled) {
         return;
       }
 
-      pathNode.getAnimations().forEach((animation) => animation.cancel());
+      setDrawVisible(true);
 
-      const pathLength = pathNode.getTotalLength();
-      pathNode.style.strokeDasharray = `${pathLength}`;
-      pathNode.style.strokeDashoffset = `${pathLength}`;
-
-      pathNode.animate(
-        [
-          { strokeDashoffset: `${pathLength}` },
-          { strokeDashoffset: "0" },
-        ],
-        {
-          duration: 1320,
-          easing: "cubic-bezier(0.65, 0, 0.35, 1)",
-          fill: "forwards",
-        },
-      );
-
-      await wait(1380);
+      await wait(1320);
 
       if (cancelled) {
         return;
@@ -236,33 +200,21 @@ export function LandingTransition({ children }: { children: ReactNode }) {
 
       setFillVisible(true);
 
-      await Promise.all([
-        wait(260),
-        waitForPageReadiness(pageShellRef.current),
-      ]);
-
-      if (cancelled) {
-        return;
-      }
-
-      setMaskVisible(true);
-
       await wait(260);
 
       if (cancelled) {
         return;
       }
 
-      setIsReady(true);
-      setRotating(true);
+      setPhase("revealing");
 
-      await wait(1150);
+      await wait(1050);
 
       if (cancelled) {
         return;
       }
 
-      setOverlayVisible(false);
+      setPhase("done");
       cleanup();
     };
 
@@ -274,11 +226,15 @@ export function LandingTransition({ children }: { children: ReactNode }) {
     };
   }, [sequenceKey]);
 
+  const isLoading = phase === "loading";
+  const isRevealing = phase === "revealing";
+
   return (
     <div className={styles.scene}>
-      {overlayVisible ? (
+      {phase !== "done" ? (
         <div
-          className={`${styles.overlay} ${rotating ? styles.overlayRotating : ""}`}
+          key={sequenceKey}
+          className={`${styles.overlay} ${isRevealing ? styles.overlayRevealing : ""}`}
           aria-hidden="true"
         >
           <svg
@@ -286,20 +242,17 @@ export function LandingTransition({ children }: { children: ReactNode }) {
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
           >
-            <defs>{/*needs to be overhauled i do not like how it looks currently NOT URGENT*/}
+            <defs>
               <mask id={maskId} maskUnits="userSpaceOnUse">
                 <rect width="100" height="100" fill="white" />
                 <foreignObject width="100" height="100" className={styles.portalObject}>
                   <div className={styles.portalCenter}>
-                    <svg 
+                    <svg
                       viewBox="0 0 500 500"
                       preserveAspectRatio="xMidYMid meet"
-                      className={`${styles.portalSvg} ${rotating ? styles.portalSvgRotating : ""}`} 
-                    > 
-                      <path
-                        d={SVG_PATH}
-                        className={`${styles.portalCutout} ${maskVisible ? styles.portalCutoutVisible : ""}`}
-                      />
+                      className={`${styles.portalSvg} ${isRevealing ? styles.portalSvgVisible : ""}`}
+                    >
+                      <path d={SVG_PATH} className={styles.portalCutout} />
                     </svg>
                   </div>
                 </foreignObject>
@@ -314,15 +267,16 @@ export function LandingTransition({ children }: { children: ReactNode }) {
           </svg>
 
           <div className={styles.markStage}>
-            <svg
-              viewBox="0 0 500 500"
-              className={`${styles.markSvg} ${rotating ? styles.markSvgRotating : ""}`}
-            >
+            <svg viewBox="0 0 500 500" className={styles.markSvg}>
               <path
                 d={SVG_PATH}
                 className={`${styles.fillPath} ${fillVisible ? styles.fillPathVisible : ""}`}
               />
-              <path ref={pathRef} d={SVG_PATH} className={styles.strokePath} />
+              <path
+                d={SVG_PATH}
+                pathLength={1}
+                className={`${styles.strokePath} ${drawVisible ? styles.strokePathVisible : ""}`}
+              />
             </svg>
           </div>
         </div>
@@ -330,8 +284,7 @@ export function LandingTransition({ children }: { children: ReactNode }) {
 
       <div
         ref={pageShellRef}
-        data-start={isReady ? "visible" : "hidden"}
-        className={`${styles.pageShell} ${isReady ? styles.pageShellVisible : ""} ${rotating ? styles.pageShellRotating : ""}`}
+        className={`${styles.pageShell} ${phase !== "loading" ? styles.pageShellVisible : ""} ${isRevealing ? styles.pageShellRevealing : ""}`}
       >
         {children}
       </div>

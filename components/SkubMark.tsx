@@ -13,12 +13,16 @@ export function SkubMark({
   label?: string;
 }) {
   return (
-    <button type="button" className={`${styles.root} ${className}`.trim()} aria-label={label}>
+    <span
+      className={`${styles.root} ${className}`.trim()}
+      aria-label={label}
+      role="img"
+    >
       <svg viewBox="0 0 500 500" className={styles.svg}>
         <path d={SVG_PATH} className={styles.basePath} />
         <path d={SVG_PATH} className={styles.edgePath} />
         <path d={SVG_PATH} pathLength={1} className={styles.highlightPath} />
       </svg>
-    </button>
+    </span>
   );
 }
