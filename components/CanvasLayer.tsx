@@ -156,10 +156,10 @@ export function CanvasLayer() {
     }
 
     const rootStyles = getComputedStyle(document.documentElement);
-    const foregroundColor = hexToRgb(rootStyles.getPropertyValue("--color-foreground"));
+    const foregroundColor = { r: 70, g: 76, b: 88 };
+    const blackDotColor = { r: 24, g: 27, b: 33 };
     const accentColor = hexToRgb(rootStyles.getPropertyValue("--color-accent"));
     const extraColor = hexToRgb(rootStyles.getPropertyValue("--color-extra"));
-    const warmHighlight = { r: 255, g: 231, b: 214 };
     let width = 0;
     let height = 0;
     let animationFrame = 0;
@@ -272,7 +272,7 @@ export function CanvasLayer() {
       const panelProgress = Number.parseFloat(
         getComputedStyle(document.documentElement).getPropertyValue("--panel-progress-global") || "0",
       );
-      const warmMix = Number.isFinite(panelProgress) ? panelProgress : 0;
+      const darkMix = Number.isFinite(panelProgress) ? Math.min(Math.max(panelProgress * 2.35, 0), 1) : 0;
 
       for (const point of gridPoints) {
         const { x, y } = point;
@@ -309,23 +309,26 @@ export function CanvasLayer() {
         const accentBlend = Math.min(1, intensity * 1.08);
         const extraBlend = Math.max(0, (intensity - 0.52) / 0.48);
         const alpha = 0.4 + intensity * 0.18;
+        const baseR = foregroundColor.r * (1 - darkMix) + blackDotColor.r * darkMix;
+        const baseG = foregroundColor.g * (1 - darkMix) + blackDotColor.g * darkMix;
+        const baseB = foregroundColor.b * (1 - darkMix) + blackDotColor.b * darkMix;
+        const extraR = extraColor.r * (1 - darkMix) + blackDotColor.r * darkMix;
+        const extraG = extraColor.g * (1 - darkMix) + blackDotColor.g * darkMix;
+        const extraB = extraColor.b * (1 - darkMix) + blackDotColor.b * darkMix;
         const r = Math.round(
-          foregroundColor.r * (1 - accentBlend) * (1 - extraBlend) * (1 - warmMix) +
-            warmHighlight.r * (1 - accentBlend) * (1 - extraBlend) * warmMix +
+          baseR * (1 - accentBlend) * (1 - extraBlend) +
             accentColor.r * accentBlend * (1 - extraBlend) +
-            (extraColor.r * (1 - warmMix) + warmHighlight.r * warmMix) * extraBlend,
+            extraR * extraBlend,
         );
         const g = Math.round(
-          foregroundColor.g * (1 - accentBlend) * (1 - extraBlend) * (1 - warmMix) +
-            warmHighlight.g * (1 - accentBlend) * (1 - extraBlend) * warmMix +
+          baseG * (1 - accentBlend) * (1 - extraBlend) +
             accentColor.g * accentBlend * (1 - extraBlend) +
-            (extraColor.g * (1 - warmMix) + warmHighlight.g * warmMix) * extraBlend,
+            extraG * extraBlend,
         );
         const b = Math.round(
-          foregroundColor.b * (1 - accentBlend) * (1 - extraBlend) * (1 - warmMix) +
-            warmHighlight.b * (1 - accentBlend) * (1 - extraBlend) * warmMix +
+          baseB * (1 - accentBlend) * (1 - extraBlend) +
             accentColor.b * accentBlend * (1 - extraBlend) +
-            (extraColor.b * (1 - warmMix) + warmHighlight.b * warmMix) * extraBlend,
+            extraB * extraBlend,
         );
 
         context.beginPath();

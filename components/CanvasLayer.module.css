@@ -6,8 +6,8 @@
   opacity: 1;
   filter: saturate(1.06) contrast(1.04);
   background:
-    radial-gradient(circle at 50% 18%, rgba(244, 246, 254, 0.08), transparent 24%),
-    linear-gradient(180deg, #062343 0%, #081731 100%);
+    radial-gradient(circle at 50% 18%, rgba(46, 98, 231, 0.08), transparent 24%),
+    linear-gradient(180deg, #062343 0%, #000000 100%);
 }
 
 .root::after {
@@ -15,9 +15,9 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 18%, rgba(255, 214, 188, 0.1), transparent 24%),
-    linear-gradient(180deg, rgba(191, 74, 29, 0.72) 0%, rgba(167, 61, 22, 0.72) 100%);
-  opacity: calc(var(--panel-progress-global, 0) * 0.82);
+    radial-gradient(circle at 50% 18%, rgba(0, 0, 0, 0.16), transparent 24%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.96) 100%);
+  opacity: clamp(0, calc(var(--panel-progress-global, 0) * 2.4), 1);
   transition: opacity 180ms linear;
 }
 

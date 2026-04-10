@@ -45,7 +45,9 @@ const waitForMedia = async (root: HTMLElement | null) => {
     return;
   }
 
-  const mediaNodes = Array.from(root.querySelectorAll("img, video"));
+  const mediaNodes = Array.from(
+    root.querySelectorAll('img, video:not([data-intro-ignore="true"])'),
+  );
 
   await Promise.all(
     mediaNodes.map(

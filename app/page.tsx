@@ -5,10 +5,13 @@ import type { CSSProperties } from "react";
 
 import heroImage from "@/images/HeroImage.png";
 import terminatorImage from "@/images/TerminatorSkub.png";
+import { HeroScrollVideo } from "@/components/HeroScrollVideo";
 import { HeroShaderReveal } from "@/components/HeroShaderReveal";
 import { SkubMark } from "@/components/SkubMark";
 
 import styles from "./page.module.css";
+
+const terminatorVideoSrc = new URL("../images/newterminatogif.mp4", import.meta.url).toString();
 
 export default function HomePage() {
   const pageRef = useRef<HTMLElement | null>(null);
@@ -101,6 +104,51 @@ export default function HomePage() {
 
   return (
     <main ref={pageRef} className={styles.page}>
+      <div className={styles.terminatorBanner} aria-hidden="true">
+        <span className={styles.terminatorWord}>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 0 } as CSSProperties}>
+            T
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 1 } as CSSProperties}>
+            H
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 2 } as CSSProperties}>
+            E
+          </span>
+        </span>
+        <span className={styles.terminatorWord}>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 3 } as CSSProperties}>
+            T
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 4 } as CSSProperties}>
+            E
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 5 } as CSSProperties}>
+            R
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 6 } as CSSProperties}>
+            M
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 7 } as CSSProperties}>
+            I
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 8 } as CSSProperties}>
+            N
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 9 } as CSSProperties}>
+            A
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 10 } as CSSProperties}>
+            T
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 11 } as CSSProperties}>
+            O
+          </span>
+          <span className={styles.terminatorLetter} style={{ "--letter-index": 12 } as CSSProperties}>
+            R
+          </span>
+        </span>
+      </div>
       <header className={styles.topBar}>
         <nav className={styles.topNav} aria-label="Primary">
           <a href="#skub" className={styles.topNavMarkLink} aria-label="Skub mark home">
@@ -118,28 +166,20 @@ export default function HomePage() {
         </nav>
       </header>
       <section ref={panelTrackRef} className={styles.panelTrack}>
-        <div className={styles.panelBackdrop} aria-hidden="true">
-          <div className={styles.previewSection}>
-            <div className={styles.runItBackIntro}>
-              <span className={`${styles.runWord} ${styles.runWordEllipsis}`}>...</span>
-              <span className={`${styles.runWord} ${styles.runWordLets}`}>LET'S</span>
-              <span className={`${styles.runWord} ${styles.runWordRun}`}>RUN</span>
-              <span className={`${styles.runWord} ${styles.runWordIt}`}>IT</span>
-              <span className={`${styles.runWord} ${styles.runWordBack}`}>BACK</span>
-            </div>
-          </div>
-        </div>
+        <div className={styles.panelBackdrop} aria-hidden="true" />
         <div className={styles.panelSticky}>
           <section id="skub" className={styles.heroSection}>
             <div className={styles.heroSimple}>
               <div className={styles.heroTitleRowUnder}>
                 <h1 className={`${styles.heroTitle} ${styles.heroTitleUnder}`}>TARIK</h1>
-                <span
-                  className={`${styles.heroTitle} ${styles.titleGhostSpacer}`}
-                  aria-hidden="true"
-                >
-                  SKUBAL
-                </span>
+                <h2 className={`${styles.heroTitle} ${styles.heroTitleUnderB}`} aria-hidden="true">
+                  <span className={styles.titleGhostLetter}>S</span>
+                  <span className={styles.titleGhostLetter}>K</span>
+                  <span className={styles.titleGhostLetter}>U</span>
+                  <span className={styles.heroTitleBUnder}>B</span>
+                  <span className={styles.titleGhostLetter}>A</span>
+                  <span className={styles.titleGhostLetter}>L</span>
+                </h2>
               </div>
               <div className={styles.heroTitleRowMid} aria-hidden="true">
                 <span className={`${styles.heroTitle} ${styles.titleGhostSpacer}`}>TARIK</span>
@@ -171,6 +211,9 @@ export default function HomePage() {
                   baseSrc={heroImage.src}
                   revealSrc={terminatorImage.src}
                 />
+              </div>
+              <div className={styles.heroVideoOverlayWrap} aria-hidden="true">
+                <HeroScrollVideo src={terminatorVideoSrc} />
               </div>
             </div>
           </section>
