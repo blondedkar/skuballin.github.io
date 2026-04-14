@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
+import { useGraphicsMode } from "./providers/GraphicsModeProvider";
 import styles from "./HeroShaderReveal.module.css";
 
 type HeroShaderRevealProps = {
@@ -423,6 +424,7 @@ export function HeroShaderReveal({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const revealImageRef = useRef<HTMLImageElement | null>(null);
   const [webglReady, setWebglReady] = useState(false);
+  const { mode } = useGraphicsMode();
 
   useEffect(() => {
     const host = hostRef.current;
@@ -430,6 +432,49 @@ export function HeroShaderReveal({
 
     if (!host || !revealLayer) {
       return undefined;
+    }
+
+    if (mode === "reduced") {
+      const setPointerMask = (x: number, y: number, active: boolean) => {
+        host.style.setProperty("--reveal-x", `${(x * 100).toFixed(2)}%`);
+        host.style.setProperty("--reveal-y", `${(y * 100).toFixed(2)}%`);
+        host.style.setProperty("--reveal-strength", active ? "1" : "0");
+      };
+
+      const normalizePointer = (clientX: number, clientY: number) => {
+        const bounds = host.getBoundingClientRect();
+
+        return {
+          x: THREE.MathUtils.clamp((clientX - bounds.left) / bounds.width, 0, 1),
+          y: THREE.MathUtils.clamp((clientY - bounds.top) / bounds.height, 0, 1),
+        };
+      };
+
+      const handlePointerEnter = (event: PointerEvent) => {
+        const normalized = normalizePointer(event.clientX, event.clientY);
+        setPointerMask(normalized.x, normalized.y, true);
+      };
+
+      const handlePointerMove = (event: PointerEvent) => {
+        const normalized = normalizePointer(event.clientX, event.clientY);
+        setPointerMask(normalized.x, normalized.y, true);
+      };
+
+      const handlePointerLeave = () => {
+        setPointerMask(0.5, 0.42, false);
+      };
+
+      setPointerMask(0.5, 0.42, false);
+      setWebglReady(true);
+      host.addEventListener("pointerenter", handlePointerEnter);
+      host.addEventListener("pointermove", handlePointerMove);
+      host.addEventListener("pointerleave", handlePointerLeave);
+
+      return () => {
+        host.removeEventListener("pointerenter", handlePointerEnter);
+        host.removeEventListener("pointermove", handlePointerMove);
+        host.removeEventListener("pointerleave", handlePointerLeave);
+      };
     }
 
     const glCanvas = document.createElement("canvas");
@@ -441,7 +486,12 @@ export function HeroShaderReveal({
     });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio * 1.2, 2));
+    renderer.setPixelRatio(
+      Math.min(
+        window.devicePixelRatio * 1.2,
+        2,
+      ),
+    );
 
     const quadGeometry = new THREE.PlaneGeometry(2, 2);
     const quadCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -683,7 +733,10 @@ export function HeroShaderReveal({
         return;
       }
 
-      const pixelRatio = Math.min(window.devicePixelRatio * 1.2, 2);
+      const pixelRatio = Math.min(
+        window.devicePixelRatio * 1.2,
+        2,
+      );
       renderer.setPixelRatio(pixelRatio);
       renderer.setSize(bounds.width, bounds.height, false);
       noiseRenderTarget.setSize(
@@ -1013,16 +1066,21 @@ export function HeroShaderReveal({
       fluidDisplay.dispose();
       renderer.dispose();
     };
-  }, [revealSrc]);
+  }, [mode, revealSrc]);
 
   return (
-    <div ref={hostRef} className={styles.root}>
+    <div
+      ref={hostRef}
+      className={`${styles.root} ${mode === "reduced" ? styles.rootReduced : ""}`}
+    >
       <img src={baseSrc} alt={alt} className={styles.baseImage} />
       <img
         ref={revealImageRef}
         src={revealSrc}
         alt=""
-        className={`${styles.revealImage} ${webglReady ? styles.revealReady : ""}`}
+        className={`${styles.revealImage} ${webglReady ? styles.revealReady : ""} ${
+          mode === "reduced" ? styles.revealReduced : ""
+        }`}
         aria-hidden="true"
       />
     </div>

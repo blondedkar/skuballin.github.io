@@ -1,4 +1,11 @@
-.root {
+.backdrop {
+  --noise-top-r: 6;
+  --noise-top-g: 35;
+  --noise-top-b: 67;
+  --noise-bottom-r: 12;
+  --noise-bottom-g: 40;
+  --noise-bottom-b: 68;
+  --noise-darkness: clamp(0, calc(var(--panel-progress-global, 0) * 1.35), 1);
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -7,43 +14,29 @@
   filter: saturate(1.06) contrast(1.04);
   background:
     radial-gradient(circle at 50% 18%, rgba(46, 98, 231, 0.08), transparent 24%),
-    linear-gradient(180deg, #062343 0%, #000000 100%);
+    linear-gradient(180deg, #062343 0%, #0c2844 100%);
+  
 }
 
-.root::after {
+.backdrop::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
     radial-gradient(circle at 50% 18%, rgba(0, 0, 0, 0.16), transparent 24%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.96) 100%);
-  opacity: clamp(0, calc(var(--panel-progress-global, 0) * 2.4), 1);
+  opacity: var(--noise-darkness);
   transition: opacity 180ms linear;
 }
 
-.playerLayer {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.playerImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.16;
-  mix-blend-mode: screen;
-  filter: saturate(0.8) contrast(0.98) brightness(0.72);
-  transform: scale(1.01);
-}
-
 .canvas {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 1;
+  pointer-events: none;
   display: block;
   width: 100%;
   height: 100%;
+  opacity: 0.92;
+  filter: saturate(0.92) contrast(1.04);
 }

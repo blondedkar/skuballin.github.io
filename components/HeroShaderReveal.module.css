@@ -1,4 +1,7 @@
 .root {
+  --reveal-x: 50%;
+  --reveal-y: 42%;
+  --reveal-strength: 0;
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -41,4 +44,32 @@
 
 .revealReady {
   opacity: 1;
+}
+
+.rootReduced {
+  cursor: default;
+}
+
+.revealReduced {
+  opacity: 1;
+  -webkit-mask-image:
+    radial-gradient(
+      circle at var(--reveal-x) var(--reveal-y),
+      rgba(0, 0, 0, 1) 0,
+      rgba(0, 0, 0, 1) calc(9% + (var(--reveal-strength) * 9%)),
+      rgba(0, 0, 0, 0.82) calc(18% + (var(--reveal-strength) * 10%)),
+      rgba(0, 0, 0, 0.18) calc(29% + (var(--reveal-strength) * 12%)),
+      transparent calc(38% + (var(--reveal-strength) * 12%))
+    );
+  mask-image:
+    radial-gradient(
+      circle at var(--reveal-x) var(--reveal-y),
+      rgba(0, 0, 0, 1) 0,
+      rgba(0, 0, 0, 1) calc(9% + (var(--reveal-strength) * 9%)),
+      rgba(0, 0, 0, 0.82) calc(18% + (var(--reveal-strength) * 10%)),
+      rgba(0, 0, 0, 0.18) calc(29% + (var(--reveal-strength) * 12%)),
+      transparent calc(38% + (var(--reveal-strength) * 12%))
+    );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }

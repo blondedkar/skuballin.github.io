@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
+import { useGraphicsMode } from "./providers/GraphicsModeProvider";
 import styles from "./CanvasLayer.module.css";
 
 class Grad {
@@ -114,6 +115,32 @@ const perlin3 = (xin: number, yin: number, zin: number) => {
 const getValue = (x: number, y: number, z: number, scale: number) =>
   perlin3(x * scale, y * scale, z * scale) * Math.PI * 2;
 
+const mixChannel = (from: number, to: number, amount: number) => from * (1 - amount) + to * amount;
+const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1);
+const smoothstep = (edge0: number, edge1: number, value: number) => {
+  if (edge0 === edge1) {
+    return value < edge0 ? 0 : 1;
+  }
+
+  const t = clamp01((value - edge0) / (edge1 - edge0));
+  return t * t * (3 - 2 * t);
+};
+
+const getLuminance = (r: number, g: number, b: number) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+
+const getAdaptiveNeutral = (backgroundLuminance: number) => {
+  const contrastBoost = 1 - clamp01(backgroundLuminance);
+  const channel = Math.round(86 + contrastBoost * 116);
+
+  return { r: channel, g: channel, b: Math.min(channel + 6, 255) };
+};
+
+const getCssNumber = (styles: CSSStyleDeclaration, propertyName: string, fallback: number) => {
+  const value = Number.parseFloat(styles.getPropertyValue(propertyName));
+
+  return Number.isFinite(value) ? value : fallback;
+};
+
 const hexToRgb = (value: string) => {
   const normalized = value.trim();
 
@@ -140,7 +167,10 @@ const hexToRgb = (value: string) => {
 };
 
 export function CanvasLayer() {
+  const backdropRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRevealProgressRef = useRef(0);
+  const { mode } = useGraphicsMode();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -156,19 +186,20 @@ export function CanvasLayer() {
     }
 
     const rootStyles = getComputedStyle(document.documentElement);
-    const foregroundColor = { r: 70, g: 76, b: 88 };
-    const blackDotColor = { r: 24, g: 27, b: 33 };
     const accentColor = hexToRgb(rootStyles.getPropertyValue("--color-accent"));
     const extraColor = hexToRgb(rootStyles.getPropertyValue("--color-extra"));
+    const videoHighlightColor = { r: 0, g: 0, b: 0 };
+    const graphiteColor = { r: 14, g: 16, b: 18 };
+    const graphiteAccentColor = { r: 22, g: 24, b: 28 };
     let width = 0;
     let height = 0;
     let animationFrame = 0;
     let lastFrameTime = 0;
     let z = Math.random() * 222;
-    const speed = 1.85;
+    const speed = mode === "reduced" ? 0.18 : 1.85;
     const scale = 0.0028;
     let spacing = 14;
-    const frameInterval = 1000 / 24;
+    const frameInterval = 1000 / (mode === "reduced" ? 12 : 24);
     let gridPoints: Array<{ x: number; y: number }> = [];
     const pointer = {
       x: 0,
@@ -192,7 +223,18 @@ export function CanvasLayer() {
       height = window.innerHeight;
       canvas.width = width;
       canvas.height = height;
-      spacing = width < 640 ? 20 : width < 1024 ? 17 : 15;
+      spacing =
+        mode === "reduced"
+          ? width < 640
+            ? 28
+            : width < 1024
+              ? 24
+              : 22
+          : width < 640
+            ? 20
+            : width < 1024
+              ? 17
+              : 15;
       gridPoints = [];
 
       for (let x = 0; x < width; x += spacing) {
@@ -223,13 +265,18 @@ export function CanvasLayer() {
       }
 
       pointer.active = true;
-      pointer.targetStrength = 1;
+      pointer.targetStrength = mode === "reduced" ? 0.45 : 1;
     };
 
     const handlePointerLeave = () => {
       pointer.x = width * 0.5;
       pointer.y = height * 0.5;
       pointer.targetStrength = 0;
+    };
+
+    const handleVideoRevealProgress = (event: Event) => {
+      const customEvent = event as CustomEvent<{ progress?: number }>;
+      videoRevealProgressRef.current = clamp01(customEvent.detail?.progress ?? 0);
     };
 
     const render = (timestamp: number) => {
@@ -241,13 +288,14 @@ export function CanvasLayer() {
       lastFrameTime = timestamp;
       context.clearRect(0, 0, width, height);
 
-      pointer.currentX = lerp(pointer.currentX, pointer.x, 0.18);
-      pointer.currentY = lerp(pointer.currentY, pointer.y, 0.18);
-      pointer.velocityX = lerp(pointer.velocityX, pointer.currentX - pointer.previousX, 0.2);
-      pointer.velocityY = lerp(pointer.velocityY, pointer.currentY - pointer.previousY, 0.2);
+      const pointerLerp = mode === "reduced" ? 0.12 : 0.18;
+      pointer.currentX = lerp(pointer.currentX, pointer.x, pointerLerp);
+      pointer.currentY = lerp(pointer.currentY, pointer.y, pointerLerp);
+      pointer.velocityX = lerp(pointer.velocityX, pointer.currentX - pointer.previousX, mode === "reduced" ? 0.12 : 0.2);
+      pointer.velocityY = lerp(pointer.velocityY, pointer.currentY - pointer.previousY, mode === "reduced" ? 0.12 : 0.2);
       pointer.previousX = pointer.currentX;
       pointer.previousY = pointer.currentY;
-      pointer.strength = lerp(pointer.strength, pointer.targetStrength, 0.1);
+      pointer.strength = lerp(pointer.strength, pointer.targetStrength, mode === "reduced" ? 0.06 : 0.1);
 
       const velocityMagnitude = Math.hypot(pointer.velocityX, pointer.velocityY);
 
@@ -264,22 +312,31 @@ export function CanvasLayer() {
       const normalX = -directionY;
       const normalY = directionX;
       const hasWake = pointer.strength > 0.001 || pointer.wake > 0.001;
-      const wakeRadius = hasWake ? Math.min(width, height) * 0.16 : 0;
+      const wakeRadius = hasWake ? Math.min(width, height) * (mode === "reduced" ? 0.11 : 0.16) : 0;
       const wakeRadiusSquared = wakeRadius * wakeRadius;
-      const trailLength = wakeRadius * 2.2;
-      const wakeTarget = pointer.strength * Math.min(1, 0.16 + velocityMagnitude * 2.1);
-      pointer.wake = lerp(pointer.wake, wakeTarget, 0.08);
-      const panelProgress = Number.parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue("--panel-progress-global") || "0",
-      );
-      const darkMix = Number.isFinite(panelProgress) ? Math.min(Math.max(panelProgress * 2.35, 0), 1) : 0;
+      const trailLength = wakeRadius * (mode === "reduced" ? 1.2 : 2.2);
+      const wakeTarget = pointer.strength * Math.min(1, 0.16 + velocityMagnitude * (mode === "reduced" ? 1.2 : 2.1));
+      pointer.wake = lerp(pointer.wake, wakeTarget, mode === "reduced" ? 0.04 : 0.08);
+      const backdropStyles = backdropRef.current ? getComputedStyle(backdropRef.current) : null;
+      const topBackgroundColor = {
+        r: backdropStyles ? getCssNumber(backdropStyles, "--noise-top-r", 6) : 6,
+        g: backdropStyles ? getCssNumber(backdropStyles, "--noise-top-g", 35) : 35,
+        b: backdropStyles ? getCssNumber(backdropStyles, "--noise-top-b", 67) : 67,
+      };
+      const bottomBackgroundColor = {
+        r: backdropStyles ? getCssNumber(backdropStyles, "--noise-bottom-r", 12) : 12,
+        g: backdropStyles ? getCssNumber(backdropStyles, "--noise-bottom-g", 40) : 40,
+        b: backdropStyles ? getCssNumber(backdropStyles, "--noise-bottom-b", 68) : 68,
+      };
+      const fadeToBlack = backdropStyles ? clamp01(getCssNumber(backdropStyles, "--noise-darkness", 0)) : 0;
+      const videoRevealProgress = videoRevealProgressRef.current;
 
       for (const point of gridPoints) {
         const { x, y } = point;
         let sampleX = x;
         let sampleY = y;
 
-        if (hasWake && pointer.wake > 0.001) {
+        if (hasWake && pointer.wake > 0.001 && mode !== "reduced") {
           const offsetX = x - pointer.currentX;
           const offsetY = y - pointer.currentY;
           const distanceSquared = offsetX * offsetX + offsetY * offsetY;
@@ -298,7 +355,15 @@ export function CanvasLayer() {
           }
         }
 
-        const value = getValue(sampleX, sampleY, z, scale);
+        const horizontalPhase = width > 0 ? x / width : 0;
+        const verticalPhase = height > 0 ? y / height : 0;
+        const waveCenter = videoRevealProgress * 1.45 - 0.18;
+        const wavePosition = horizontalPhase * 0.82 + verticalPhase * 0.26;
+        const waveMix = smoothstep(-0.16, 0.18, waveCenter - wavePosition);
+        const ripplePhase = (horizontalPhase * 8.4 - verticalPhase * 5.6 + z * 0.008) * Math.PI;
+        const ripple = Math.sin(ripplePhase);
+        const waveDisplacement = waveMix * ripple;
+        const value = getValue(sampleX + waveDisplacement * 22, sampleY + waveDisplacement * 34, z, scale);
         const radius = Math.abs(2 * value);
 
         if (radius < 0.52) {
@@ -308,31 +373,57 @@ export function CanvasLayer() {
         const intensity = Math.min(Math.abs(value), 1);
         const accentBlend = Math.min(1, intensity * 1.08);
         const extraBlend = Math.max(0, (intensity - 0.52) / 0.48);
-        const alpha = 0.4 + intensity * 0.18;
-        const baseR = foregroundColor.r * (1 - darkMix) + blackDotColor.r * darkMix;
-        const baseG = foregroundColor.g * (1 - darkMix) + blackDotColor.g * darkMix;
-        const baseB = foregroundColor.b * (1 - darkMix) + blackDotColor.b * darkMix;
-        const extraR = extraColor.r * (1 - darkMix) + blackDotColor.r * darkMix;
-        const extraG = extraColor.g * (1 - darkMix) + blackDotColor.g * darkMix;
-        const extraB = extraColor.b * (1 - darkMix) + blackDotColor.b * darkMix;
+        const alpha = mode === "reduced" ? 0.32 + intensity * 0.12 : 0.4 + intensity * 0.18;
+        const verticalMix = height > 0 ? clamp01(y / height) : 0;
+        const backgroundR = mixChannel(
+          mixChannel(topBackgroundColor.r, bottomBackgroundColor.r, verticalMix),
+          0,
+          fadeToBlack,
+        );
+        const backgroundG = mixChannel(
+          mixChannel(topBackgroundColor.g, bottomBackgroundColor.g, verticalMix),
+          0,
+          fadeToBlack,
+        );
+        const backgroundB = mixChannel(
+          mixChannel(topBackgroundColor.b, bottomBackgroundColor.b, verticalMix),
+          0,
+          fadeToBlack,
+        );
+        const adaptiveNeutral = getAdaptiveNeutral(getLuminance(backgroundR, backgroundG, backgroundB));
+        const baseR = adaptiveNeutral.r;
+        const baseG = adaptiveNeutral.g;
+        const baseB = adaptiveNeutral.b;
+        const colorShift = clamp01(waveMix * (0.72 + (ripple * 0.5 + 0.5) * 0.28));
+        const accentR = mixChannel(accentColor.r, graphiteAccentColor.r, colorShift);
+        const accentG = mixChannel(accentColor.g, graphiteAccentColor.g, colorShift);
+        const accentB = mixChannel(accentColor.b, graphiteAccentColor.b, colorShift);
+        const revealedExtraR = mixChannel(videoHighlightColor.r, graphiteColor.r, colorShift);
+        const revealedExtraG = mixChannel(videoHighlightColor.g, graphiteColor.g, colorShift);
+        const revealedExtraB = mixChannel(videoHighlightColor.b, graphiteColor.b, colorShift);
+        const extraR = mixChannel(extraColor.r, revealedExtraR, waveMix);
+        const extraG = mixChannel(extraColor.g, revealedExtraG, waveMix);
+        const extraB = mixChannel(extraColor.b, revealedExtraB, waveMix);
+        const drawX = x + waveDisplacement * 6;
+        const drawY = y + waveDisplacement * 10;
         const r = Math.round(
           baseR * (1 - accentBlend) * (1 - extraBlend) +
-            accentColor.r * accentBlend * (1 - extraBlend) +
+            accentR * accentBlend * (1 - extraBlend) +
             extraR * extraBlend,
         );
         const g = Math.round(
           baseG * (1 - accentBlend) * (1 - extraBlend) +
-            accentColor.g * accentBlend * (1 - extraBlend) +
+            accentG * accentBlend * (1 - extraBlend) +
             extraG * extraBlend,
         );
         const b = Math.round(
           baseB * (1 - accentBlend) * (1 - extraBlend) +
-            accentColor.b * accentBlend * (1 - extraBlend) +
+            accentB * accentBlend * (1 - extraBlend) +
             extraB * extraBlend,
         );
 
         context.beginPath();
-        context.arc(x, y, radius, 0, Math.PI * 2, true);
+        context.arc(drawX, drawY, radius, 0, Math.PI * 2, true);
         context.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
         context.fill();
       }
@@ -343,22 +434,28 @@ export function CanvasLayer() {
 
     resize();
     seedNoise(z);
+    videoRevealProgressRef.current = clamp01(
+      Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--video-reveal-progress-global")) || 0,
+    );
     animationFrame = window.requestAnimationFrame(render);
     window.addEventListener("resize", resize);
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerleave", handlePointerLeave);
+    window.addEventListener("skub:video-reveal-progress", handleVideoRevealProgress as EventListener);
 
     return () => {
       window.cancelAnimationFrame(animationFrame);
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerleave", handlePointerLeave);
+      window.removeEventListener("skub:video-reveal-progress", handleVideoRevealProgress as EventListener);
     };
-  }, []);
+  }, [mode]);
 
   return (
-    <div className={styles.root} aria-hidden="true">
-      <canvas ref={canvasRef} className={styles.canvas} />
-    </div>
+    <>
+      <div ref={backdropRef} className={styles.backdrop} aria-hidden="true" />
+      <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
+    </>
   );
 }

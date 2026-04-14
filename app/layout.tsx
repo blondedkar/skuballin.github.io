@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 
 import { CanvasLayer } from "@/components/CanvasLayer";
 import { LandingTransition } from "@/components/LandingTransition";
+import { GraphicsModeProvider } from "@/components/providers/GraphicsModeProvider";
 import { LenisProvider } from "@/components/providers/LenisProvider";
 
 import "@/styles/globals.css";
@@ -86,6 +87,12 @@ const accentDisplayFont = localFont({
   display: "swap",
 });
 
+const froadmileFont = localFont({
+  src: "./fonts/Froadmile.ttf",
+  variable: "--font-froadmile",
+  display: "swap",
+});
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -93,8 +100,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Lenis Stack Starter",
-  description: "Minimal Next.js starter with Lenis, GSAP, and canvas-ready structure.",
+  title: "Tarik Skubal",
+  description: "2025 MLB Cy Young Award Winner | Detroit Tigers Pitcher",
 };
 
 export default function RootLayout({
@@ -105,13 +112,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${headerFont.variable} ${ownersFont.variable} ${accentFont.variable} ${accentDisplayFont.variable} ${inter.variable}`}
+      className={`${headerFont.variable} ${ownersFont.variable} ${accentFont.variable} ${accentDisplayFont.variable} ${froadmileFont.variable} ${inter.variable}`}
     >
       <body suppressHydrationWarning>
-        <LenisProvider>
-          <CanvasLayer />
-          <LandingTransition>{children}</LandingTransition>
-        </LenisProvider>
+        <GraphicsModeProvider>
+          <LenisProvider>
+            <CanvasLayer />
+            <LandingTransition>{children}</LandingTransition>
+          </LenisProvider>
+        </GraphicsModeProvider>
       </body>
     </html>
   );

@@ -43,9 +43,10 @@ export function HeroScrollVideo({ src }: HeroScrollVideoProps) {
       const exitProgress = clamp((panelProgress - 0.34) * 1.65, 0, 1);
       const revealProgress = smoothstep(0.14, 0.9, exitProgress);
       targetProgress = revealProgress;
-      currentProgress += (targetProgress - currentProgress) * 0.12;
+      currentProgress += (targetProgress - currentProgress) * 0.42;
 
-      video.style.opacity = currentProgress.toFixed(3);
+      const opacityProgress = smoothstep(0.02, 0.44, currentProgress);
+      video.style.opacity = opacityProgress.toFixed(3);
 
       if (duration > 0) {
         const nextTime = currentProgress * duration;
@@ -129,16 +130,18 @@ export function HeroScrollVideo({ src }: HeroScrollVideoProps) {
 
   return (
     <div ref={hostRef} className={styles.root}>
-      <video
-        ref={videoRef}
-        src={src}
-        className={`${styles.video} ${ready ? styles.ready : ""}`}
-        aria-hidden="true"
-        data-intro-ignore="true"
-        muted
-        playsInline
-        preload="auto"
-      />
+      <div className={styles.viewport}>
+        <video
+          ref={videoRef}
+          src={src}
+          className={`${styles.video} ${ready ? styles.ready : ""}`}
+          aria-hidden="true"
+          data-intro-ignore="true"
+          muted
+          playsInline
+          preload="auto"
+        />
+      </div>
     </div>
   );
 }
