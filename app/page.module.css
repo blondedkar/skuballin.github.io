@@ -295,8 +295,6 @@
 }
 
 .storyMediaPane {
-  --story-parallax-x: 0px;
-  --story-parallax-y: 0px;
   position: relative;
   min-height: clamp(26rem, 72vh, 44rem);
   z-index: 3;
@@ -306,12 +304,16 @@
 }
 
 .storyMediaAsset {
-  position: absolute;
-  inset: 0;
-  will-change: transform, opacity;
-  transition:
-    transform 220ms ease-out,
-    opacity 220ms ease-out;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.storyMediaOverlay {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 8;
+  pointer-events: none;
 }
 
 .storyMediaFill {
@@ -324,34 +326,19 @@
   box-shadow: 0 2rem 4rem rgba(0, 0, 0, 0.28);
 }
 
-.storyMediaFill::before,
-.storyMediaFill::after {
+.storyMediaFill::before {
   content: "";
   position: absolute;
   inset: -3%;
   background-image: var(--story-image);
-  background-position: center center;
+  background-position: var(--story-image-position, center center);
   background-repeat: no-repeat;
   background-size: cover;
-  transform: translate3d(var(--story-parallax-x), var(--story-parallax-y), 0) scale(1.045);
-  will-change: transform, clip-path, opacity;
-  transition:
-    transform 260ms ease-out,
-    clip-path 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 260ms ease-out;
+  transform: scale(1.045);
 }
 
 .storyMediaFill::before {
-  filter: grayscale(1) saturate(0.82) contrast(1.04);
-}
-
-.storyMediaFill::after {
   filter: grayscale(0) saturate(1) contrast(1.04);
-  clip-path: inset(0 100% 0 0);
-}
-
-.storyMediaPane:hover .storyMediaFill::after {
-  clip-path: inset(0 0 0 0);
 }
 
 .storyMediaCurve {
@@ -411,11 +398,119 @@
 }
 
 .storyBody {
-  width: min(100%, 30rem);
+  position: relative;
+  width: min(100%, 42rem);
   margin: 0;
   font-size: clamp(1rem, 0.92rem + 0.28vw, 1.22rem);
   line-height: 1.5;
   color: rgba(244, 246, 254, 0.68);
+  text-wrap: pretty;
+  overflow: visible;
+}
+
+.storyBodyTop {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: clamp(0.8rem, 1.8vw, 1.5rem);
+  align-items: start;
+}
+
+.storyBodyColumn {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.storyBodyCopy {
+  margin: 0;
+}
+
+.storyBodyDivider {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.35rem;
+  padding-top: 0.2rem;
+}
+
+.storyBodyInlineDetroit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: nowrap;
+}
+
+.storyBodyLabel {
+  font-family: var(--font-header), sans-serif;
+  font-size: 1.45rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(244, 246, 254, 0.82);
+}
+
+.storyDetroitInline {
+  display: inline-block;
+  width: clamp(6.2rem, 8vw, 7.6rem);
+  height: auto;
+  margin: 0;
+  vertical-align: -0.18em;
+  color: #d56b2a;
+  opacity: 1;
+  overflow: visible;
+}
+
+.storyUnfinishedBusiness {
+  position: relative;
+  display: inline-block;
+  font-style: italic;
+  color: rgba(244, 246, 254, 0.92);
+}
+
+.storyUnfinishedBusiness::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.08em);
+  width: 100%;
+  transform: scaleY(-1);
+  transform-origin: top;
+  opacity: 0.16;
+  color: rgba(244, 246, 254, 0.7);
+  filter: blur(0.8px);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.34), transparent 78%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.34), transparent 78%);
+  pointer-events: none;
+}
+
+.storyRunItBack {
+  margin-left: 0.18em;
+  font-weight: 700;
+}
+
+.storySignatureSlot {
+  position: absolute;
+  right: clamp(-7rem, -5vw, -2rem);
+  bottom: clamp(-6.5rem, -6vw, -3rem);
+  width: clamp(9rem, 16vw, 13rem);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.storySignature {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: rgba(244, 246, 254, 0.96);
+  filter: drop-shadow(0 0.8rem 1.6rem rgba(0, 0, 0, 0.18));
+  mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, 0.85) 45%, rgba(0, 0, 0, 1) 100%);
+  -webkit-mask-image: linear-gradient(
+    to top,
+    transparent 0%,
+    rgba(0, 0, 0, 0.85) 45%,
+    rgba(0, 0, 0, 1) 100%
+  );
 }
 
 @keyframes storyMarqueeLeft {
@@ -467,11 +562,200 @@
 }
 
 .contentSection {
-  background: #000000;
+  background: transparent;
 }
 
 .contentSectionAlt {
-  background: #000000;
+  background: transparent;
+}
+
+.profileCopy {
+  width: min(100%, 42rem);
+  min-height: 1px;
+}
+
+.profileCopy .sectionCopy {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.rewindSection {
+  --rewind-overlap: 50svh;
+  --rewind-scroll-distance: 120svh;
+  --rewind-rail-left: 0px;
+  --rewind-rail-top: 50svh;
+  --rewind-card-width: 13rem;
+  --rewind-card-height: 20rem;
+  --rewind-card-gap: clamp(0.9rem, 1.6vw, 1.4rem);
+  display: block;
+  min-height: calc(100svh + var(--rewind-scroll-distance) + var(--rewind-overlap));
+  margin-top: calc(-1 * var(--rewind-overlap));
+  padding: 0;
+  z-index: 3;
+}
+
+.rewindPinSpacer {
+  position: relative;
+  min-height: inherit;
+}
+
+.rewindPinSticky {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: clip;
+}
+
+.rewindCopy {
+  position: absolute;
+  left: 50%;
+  top: clamp(3.5rem, 7vw, 6rem);
+  width: calc(100vw - clamp(1rem, 2vw, 2rem));
+  max-width: none;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.rewindTitle {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.rewindGrey,
+.rewindGreen {
+  fill: none;
+  stroke-width: 5.5;
+  font-family: var(--font-header), sans-serif;
+  font-size: 17rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rewindGrey {
+  stroke: rgba(244, 246, 254, 0.26);
+}
+
+.rewindGreen {
+  stroke: #fc4616;
+}
+
+.rewindRailAnchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.rewindRailViewport {
+  position: absolute;
+  left: var(--rewind-rail-left);
+  top: var(--rewind-rail-top);
+  width: calc((var(--rewind-card-width) * 3) + (var(--rewind-card-gap) * 2));
+  max-width: calc(100vw - clamp(1rem, 2vw, 2rem));
+  overflow: hidden;
+  justify-self: start;
+  z-index: 3;
+  opacity: 1;
+  visibility: visible;
+}
+
+.rewindRailTrack {
+  display: flex;
+  gap: var(--rewind-card-gap);
+  width: max-content;
+  height: var(--rewind-card-height);
+  align-items: stretch;
+  will-change: transform;
+  opacity: 1;
+  visibility: visible;
+}
+
+.rewindCard {
+  flex: 0 0 var(--rewind-card-width);
+  width: var(--rewind-card-width);
+  height: var(--rewind-card-height);
+  opacity: 1;
+  visibility: visible;
+}
+
+.rewindCardLead {
+  position: relative;
+}
+
+.rewindCardInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(244, 246, 254, 0.18);
+  border-radius: 1.35rem;
+  background:
+    linear-gradient(160deg, rgba(252, 70, 22, 0.18), rgba(8, 10, 18, 0.94) 38%),
+    linear-gradient(180deg, rgba(244, 246, 254, 0.08), rgba(244, 246, 254, 0.02));
+  box-shadow: 0 1.4rem 2.8rem rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.rewindLeadMedia {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(244, 246, 254, 0.14);
+  box-shadow: 0 2rem 4rem rgba(0, 0, 0, 0.28);
+  background-color: rgba(7, 10, 18, 0.9);
+}
+
+.rewindLeadFill {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.rewindLeadFill::before {
+  content: "";
+  position: absolute;
+  inset: -3%;
+  background-image: var(--story-image);
+  background-position: var(--story-image-position, center center);
+  background-repeat: no-repeat;
+  background-size: cover;
+  transform: scale(1.045);
+  filter: grayscale(0) saturate(1) contrast(1.04);
+}
+
+.rewindCardInner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(252, 70, 22, 0.12), transparent 42%),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08) 0,
+      rgba(255, 255, 255, 0.08) 1px,
+      transparent 1px,
+      transparent 14px
+    );
+  opacity: 0.9;
+}
+
+.rewindCardLabel {
+  position: absolute;
+  left: 1rem;
+  bottom: 0.9rem;
+  z-index: 1;
+  font-family: var(--font-header), sans-serif;
+  font-size: clamp(1.6rem, 2vw, 2.2rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(244, 246, 254, 0.84);
 }
 
 .heroTitleRowUnder {
@@ -840,6 +1124,29 @@
     padding-right: 0;
   }
 
+  .storyBody {
+    width: min(100%, 34rem);
+  }
+
+  .storyBodyTop {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .storyBodyDivider {
+    justify-items: start;
+  }
+
+  .storyBodyInlineDetroit {
+    gap: 0.35rem;
+  }
+
+  .storySignatureSlot {
+    right: 0;
+    bottom: -4rem;
+    width: min(11rem, 46%);
+  }
+
   .storyHeadline {
     font-size: clamp(3rem, 11vw, 5rem);
   }
@@ -872,6 +1179,10 @@
 
   .sectionTitle {
     font-size: clamp(3rem, 13vw, 5.4rem);
+  }
+
+  .profileCopy {
+    width: min(100%, 42rem);
   }
 
   .heroMaskLayer {

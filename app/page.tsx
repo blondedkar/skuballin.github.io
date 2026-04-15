@@ -11,6 +11,7 @@ import terminatorImage from "@/images/TerminatorSkub.png";
 import { HeroShaderReveal } from "@/components/HeroShaderReveal";
 import { SkubMark } from "@/components/SkubMark";
 import { StoryDetroitWord } from "@/components/StoryDetroitWord";
+import { StorySignature } from "@/components/StorySignature";
 
 import styles from "./page.module.css";
 
@@ -19,13 +20,22 @@ gsap.registerPlugin(ScrollTrigger);
 export default function HomePage() {
   const pageRef = useRef<HTMLElement | null>(null);
   const panelTrackRef = useRef<HTMLElement | null>(null);
-  const scrollFrameRef = useRef<number | null>(null);
-  const storyScrollPanelRef = useRef<HTMLDivElement | null>(null);
+  const rewindSectionRef = useRef<HTMLElement | null>(null);
+  const rewindTitleRef = useRef<SVGSVGElement | null>(null);
+  const rewindGreyRefs = useRef<SVGTextElement[]>([]);
+  const rewindGreenRefs = useRef<SVGTextElement[]>([]);
+  const rewindRailViewportRef = useRef<HTMLDivElement | null>(null);
+  const rewindRailTrackRef = useRef<HTMLDivElement | null>(null);
+  const rewindLeadCardRef = useRef<HTMLDivElement | null>(null);
   const storyMediaPaneRef = useRef<HTMLDivElement | null>(null);
   const storyMediaAssetRef = useRef<HTMLDivElement | null>(null);
+  const storyMediaOverlayRef = useRef<HTMLDivElement | null>(null);
+  const storyMediaOverlayFillRef = useRef<HTMLDivElement | null>(null);
   const storyDetroitPathRef = useRef<SVGPathElement | null>(null);
-  const storyBodyRef = useRef<HTMLParagraphElement | null>(null);
+  const storyBodyRef = useRef<HTMLDivElement | null>(null);
+  const storySignatureRef = useRef<SVGSVGElement | null>(null);
   const marqueeCopies = useMemo(() => Array.from({ length: 10 }), []);
+  const rewindPlaceholders = useMemo(() => Array.from({ length: 6 }), []);
 
   useEffect(() => {
     const page = pageRef.current;
@@ -35,12 +45,7 @@ export default function HomePage() {
       return undefined;
     }
 
-    const updatePanelProgress = () => {
-      const rect = track.getBoundingClientRect();
-      const total = Math.max(track.offsetHeight - window.innerHeight, 5);
-      const progress = Math.min(Math.max(-rect.top / total, 0), 1);
-      const storySlideProgress = Math.min(Math.max((progress - 0.12) * 1.5, 0), 1);
-      const storyPanelEnter = Math.min(Math.max((storySlideProgress - 0.62) * 3.1, 0), 1);
+    const applyPanelProgress = (progress: number) => {
       const exitProgress = Math.min(Math.max((progress - 0.34) * 1.65, 0), 1);
       const videoRevealProgress =
         exitProgress <= 0.14
@@ -61,108 +66,115 @@ export default function HomePage() {
           detail: { progress: videoRevealProgress },
         }),
       );
-      window.dispatchEvent(
-        new CustomEvent("skub:story-panel-progress", {
-          detail: {
-            progress: storyPanelEnter,
-          },
-        }),
-      );
     };
 
-    const handleScroll = () => {
-      if (scrollFrameRef.current !== null) {
-        window.cancelAnimationFrame(scrollFrameRef.current);
-      }
+    const panelProgressTrigger = ScrollTrigger.create({
+      trigger: track,
+      start: "top top",
+      end: "bottom bottom",
+      invalidateOnRefresh: true,
+      onRefresh: (self) => {
+        applyPanelProgress(self.progress);
+      },
+      onUpdate: (self) => {
+        applyPanelProgress(self.progress);
+      },
+    });
 
-      scrollFrameRef.current = window.requestAnimationFrame(updatePanelProgress);
-    };
-
-    updatePanelProgress();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll);
+    applyPanelProgress(panelProgressTrigger.progress);
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
+      panelProgressTrigger.kill();
       document.documentElement.style.removeProperty("--panel-progress-global");
       document.documentElement.style.removeProperty("--video-reveal-progress-global");
-
-      if (scrollFrameRef.current !== null) {
-        window.cancelAnimationFrame(scrollFrameRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const pane = storyMediaPaneRef.current;
-
-    if (!pane) {
-      return undefined;
-    }
-
-    const handlePointerMove = (event: PointerEvent) => {
-      const rect = pane.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width;
-      const y = (event.clientY - rect.top) / rect.height;
-      const offsetX = (x - 0.5) * 18;
-      const offsetY = (y - 0.5) * 18;
-
-      pane.style.setProperty("--story-parallax-x", `${offsetX.toFixed(2)}px`);
-      pane.style.setProperty("--story-parallax-y", `${offsetY.toFixed(2)}px`);
-    };
-
-    const resetPointer = () => {
-      pane.style.setProperty("--story-parallax-x", "0px");
-      pane.style.setProperty("--story-parallax-y", "0px");
-    };
-
-    resetPointer();
-    pane.addEventListener("pointermove", handlePointerMove);
-    pane.addEventListener("pointerleave", resetPointer);
-
-    return () => {
-      pane.removeEventListener("pointermove", handlePointerMove);
-      pane.removeEventListener("pointerleave", resetPointer);
     };
   }, []);
 
   useEffect(() => {
     const track = panelTrackRef.current;
-    const storyPanel = storyScrollPanelRef.current;
+    const storyPane = storyMediaPaneRef.current;
     const media = storyMediaAssetRef.current;
+    const mediaOverlay = storyMediaOverlayRef.current;
+    const mediaOverlayFill = storyMediaOverlayFillRef.current;
+    const rewindSection = rewindSectionRef.current;
+    const rewindTitle = rewindTitleRef.current;
+    const rewindRailViewport = rewindRailViewportRef.current;
+    const rewindRailTrack = rewindRailTrackRef.current;
+    const rewindLeadCard = rewindLeadCardRef.current;
     const detroitPath = storyDetroitPathRef.current;
     const body = storyBodyRef.current;
+    const signature = storySignatureRef.current;
 
-    if (!track || !storyPanel || !media || !detroitPath || !body) {
+    if (
+      !track ||
+      !storyPane ||
+      !media ||
+      !mediaOverlay ||
+      !mediaOverlayFill ||
+      !rewindSection ||
+      !rewindTitle ||
+      !rewindRailViewport ||
+      !rewindRailTrack ||
+      !rewindLeadCard ||
+      !detroitPath ||
+      !body ||
+      !signature
+    ) {
       return undefined;
     }
 
     const pathLength = detroitPath.getTotalLength();
-
-    gsap.set(media, { xPercent: 34, opacity: 0 });
+    const signaturePaths = Array.from(signature.querySelectorAll("path"));
+    const rewindGreyPaths = rewindGreyRefs.current.filter(Boolean);
+    const rewindGreenPaths = rewindGreenRefs.current.filter(Boolean);
+    let overlayBaseTop = 0;
+    let overlayBaseLeft = 0;
+    let overlayBaseWidth = 0;
+    let overlayBaseHeight = 0;
+    const overlayScrollSpeed = 0.45;
+    let signatureDelayId: number | null = null;
+    let signatureHasPlayed = false;
+    gsap.set(media, { opacity: 1 });
     gsap.set(body, { x: 18, opacity: 0 });
+    gsap.set(signature, { opacity: 0.96 });
     gsap.set(detroitPath, {
       strokeDasharray: pathLength,
       strokeDashoffset: pathLength,
       strokeOpacity: 1,
     });
-    
+    signaturePaths.forEach((path) => {
+      const length = path.getTotalLength();
+      gsap.set(path, {
+        strokeDasharray: length,
+        strokeDashoffset: length,
+        opacity: 0,
+      });
+    });
+    [...rewindGreyPaths, ...rewindGreenPaths].forEach((textNode) => {
+      const length = Math.max(textNode.getComputedTextLength(), 1);
+      gsap.set(textNode, {
+        strokeDasharray: length,
+        strokeDashoffset: length,
+        opacity: 0,
+      });
+    });
+    gsap.set(mediaOverlay, {
+      autoAlpha: 0,
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: 0,
+      height: 0,
+      transformOrigin: "top left",
+    });
+    gsap.set(mediaOverlayFill, {
+      clipPath: "polygon(0 0, 79% 0, 73% 18%, 76% 42%, 70% 68%, 74% 100%, 0 100%)",
+    });
 
-    const handleStoryProgress = (event: Event) => {
-      const customEvent = event as CustomEvent<{ progress?: number }>;
-      const progress = Math.min(Math.max(customEvent.detail?.progress ?? 0, 0), 1);
-      const imageProgress = gsap.utils.clamp(0, 1, (progress - 0.08) / 0.92);
+    const applyStoryProgress = (progress: number) => {
       const textProgress = gsap.utils.clamp(0, 1, (progress - 0.02) / 0.94);
 
-      gsap.to(media, {
-        xPercent: (1 - imageProgress) * 34,
-        opacity: imageProgress,
-        duration: 0.22,
-        ease: "power3.out",
-        overwrite: true,
-      });
-
+      gsap.set(media, { opacity: 1 });
       gsap.to(body, {
         x: (1 - textProgress) * 18,
         opacity: textProgress,
@@ -172,7 +184,278 @@ export default function HomePage() {
       });
     };
 
-    window.addEventListener("skub:story-panel-progress", handleStoryProgress as EventListener);
+    const syncOverlayBounds = () => {
+      const rect = media.getBoundingClientRect();
+      overlayBaseTop = rect.top;
+      overlayBaseLeft = rect.left;
+      overlayBaseWidth = rect.width;
+      overlayBaseHeight = rect.height;
+
+      gsap.set(mediaOverlay, {
+        top: overlayBaseTop,
+        left: overlayBaseLeft,
+        width: overlayBaseWidth,
+        height: overlayBaseHeight,
+      });
+    };
+
+    const showOverlay = (shouldMeasure = false) => {
+      if (shouldMeasure) {
+        syncOverlayBounds();
+      }
+      gsap.set(media, { autoAlpha: 0 });
+      gsap.set(mediaOverlay, { autoAlpha: 1 });
+    };
+
+    const hideOverlay = () => {
+      gsap.set(media, { autoAlpha: 1 });
+      gsap.set(mediaOverlay, { autoAlpha: 0 });
+    };
+
+    const syncRewindRailSizing = () => {
+      if (overlayBaseWidth <= 0 || overlayBaseHeight <= 0) {
+        syncOverlayBounds();
+      }
+
+      const finalWidth = Math.max(overlayBaseWidth * 0.4, 180);
+      const finalHeight = Math.max(overlayBaseHeight * 0.65, 260);
+      const finalTop = Math.max((window.innerHeight * 0.58) - (finalHeight * 0.5), 24);
+      const finalLeft = Math.max(window.innerWidth * 0.08, 24);
+
+      rewindSection.style.setProperty("--rewind-card-width", `${finalWidth.toFixed(2)}px`);
+      rewindSection.style.setProperty("--rewind-card-height", `${finalHeight.toFixed(2)}px`);
+      rewindSection.style.setProperty("--rewind-rail-left", `${finalLeft.toFixed(2)}px`);
+      rewindSection.style.setProperty("--rewind-rail-top", `${finalTop.toFixed(2)}px`);
+    };
+
+    const getOverlayClipPath = (progress: number) => {
+      const clamped = gsap.utils.clamp(0, 1, progress);
+      const points = [
+        [0, 0, 0, 0],
+        [79, 0, 100, 0],
+        [73, 18, 100, 0],
+        [76, 42, 100, 50],
+        [70, 68, 100, 100],
+        [74, 100, 100, 100],
+        [0, 100, 0, 100],
+      ];
+
+      return `polygon(${points
+        .map(([fromX, fromY, toX, toY]) => {
+          const x = fromX + ((toX - fromX) * clamped);
+          const y = fromY + ((toY - fromY) * clamped);
+
+          return `${x}% ${y}%`;
+        })
+        .join(", ")})`;
+    };
+
+    const storyProgressTrigger = ScrollTrigger.create({
+      trigger: track,
+      start: "top top",
+      end: "bottom bottom",
+      invalidateOnRefresh: true,
+      onRefresh: (self) => {
+        const storySlideProgress = Math.min(Math.max((self.progress - 0.12) * 1.5, 0), 1);
+        const storyPanelEnter = Math.min(Math.max((storySlideProgress - 0.62) * 3.1, 0), 1);
+        applyStoryProgress(storyPanelEnter);
+      },
+      onUpdate: (self) => {
+        const storySlideProgress = Math.min(Math.max((self.progress - 0.12) * 1.5, 0), 1);
+        const storyPanelEnter = Math.min(Math.max((storySlideProgress - 0.62) * 3.1, 0), 1);
+        applyStoryProgress(storyPanelEnter);
+      },
+    });
+
+    const storyMediaPinTimeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: track,
+        start: "bottom bottom",
+        end: "bottom+=50% bottom",
+        markers: true,
+        onRefresh: (self) => {
+          if (!self.isActive) {
+            syncOverlayBounds();
+            syncRewindRailSizing();
+          }
+        },
+        onEnter: () => {
+          showOverlay(true);
+        },
+        onLeave: () => {
+          showOverlay(false);
+        },
+        onEnterBack: () => {
+          showOverlay(false);
+        },
+        onLeaveBack: () => {
+          hideOverlay();
+        },
+        onUpdate: (self) => {
+          showOverlay(false);
+          const progress = self.progress;
+          const width = overlayBaseWidth * (1 - (progress * 0.6));
+          const height = overlayBaseHeight * (1 - (progress * 0.35));
+          gsap.set(mediaOverlay, {
+            top: overlayBaseTop + ((self.scroll() - self.start) * overlayScrollSpeed),
+            left: overlayBaseLeft,
+            width,
+            height,
+          });
+          gsap.set(mediaOverlayFill, {
+            clipPath: getOverlayClipPath(progress),
+          });
+        },
+      },
+    });
+
+    storyMediaPinTimeline.to({}, { duration: 1 });
+
+    const playSignature = () => {
+      if (signatureHasPlayed) {
+        return;
+      }
+
+      signatureHasPlayed = true;
+      gsap.timeline()
+        .to(signaturePaths, {
+          opacity: 1,
+          duration: 0.01,
+          stagger: 0.08,
+        })
+        .to(
+          signaturePaths,
+          {
+            strokeDashoffset: 0,
+            duration: 1.2,
+            ease: "power2.out",
+            stagger: 0.14,
+          },
+          0,
+        );
+    };
+
+    const signatureTrigger = ScrollTrigger.create({
+      trigger: track,
+      start: "29% top",
+      end: "29% top",
+      markers: true,
+      onEnter: () => {
+        if (signatureHasPlayed || signatureDelayId !== null) {
+          return;
+        }
+
+        signatureDelayId = window.setTimeout(() => {
+          signatureDelayId = null;
+          playSignature();
+        }, 1500);
+      },
+      onLeaveBack: () => {
+        if (signatureHasPlayed) {
+          return;
+        }
+
+        if (signatureDelayId !== null) {
+          window.clearTimeout(signatureDelayId);
+          signatureDelayId = null;
+        }
+      },
+    });
+
+    const rewindTitleTween = gsap.timeline({
+      paused: true,
+    })
+      .to(rewindGreyPaths, {
+        opacity: 0.42,
+        strokeDashoffset: 0,
+        duration: 0.7,
+        ease: "power2.out",
+        stagger: 0.08,
+      })
+      .to(
+        rewindGreenPaths,
+        {
+          opacity: 1,
+          strokeDashoffset: 0,
+          duration: 0.7,
+          ease: "power2.out",
+          stagger: 0.08,
+        },
+        0.18,
+      );
+
+    const rewindTitleTrigger = ScrollTrigger.create({
+      trigger: track,
+      start: "bottom+=50% bottom",
+      end: "bottom+=50% bottom",
+      markers: true,
+      onEnter: () => {
+        rewindTitleTween.play(0);
+      },
+    });
+
+    const rewindHandoffTrigger = ScrollTrigger.create({
+      trigger: rewindSection,
+      start: "top top",
+      end: "top top",
+      markers: true,
+      onEnter: () => {
+        gsap.set(mediaOverlay, { autoAlpha: 0 });
+        gsap.set(rewindLeadCard, { autoAlpha: 1 });
+      },
+      onLeaveBack: () => {
+        showOverlay(false);
+        gsap.set(rewindLeadCard, { autoAlpha: 1 });
+      },
+    });
+
+    const rewindRailTween = gsap.timeline({ paused: true });
+
+    const syncRewindRailAnimation = () => {
+      syncRewindRailSizing();
+      const viewportWidth = rewindRailViewport.clientWidth;
+      const trackWidth = rewindRailTrack.scrollWidth;
+      const hiddenTravel = Math.max(trackWidth - viewportWidth, 0);
+      const entryTravel = viewportWidth + (overlayBaseWidth * 0.2);
+      const scrollDistance = (entryTravel + hiddenTravel) * 1.85;
+
+      rewindSection.style.setProperty("--rewind-scroll-distance", `${scrollDistance.toFixed(2)}px`);
+
+      gsap.set(rewindRailTrack, { x: -entryTravel });
+
+      rewindRailTween.clear()
+        .to(rewindRailTrack, {
+          x: 0,
+          duration: entryTravel / Math.max(entryTravel + hiddenTravel, 1),
+          ease: "power2.out",
+        })
+        .to(rewindRailTrack, {
+          x: -hiddenTravel,
+          duration: hiddenTravel / Math.max(entryTravel + hiddenTravel, 1),
+          ease: "none",
+        });
+    };
+
+    const rewindRailTrigger = ScrollTrigger.create({
+      trigger: rewindSection,
+      start: "top top",
+      end: () => {
+        const viewportWidth = rewindRailViewport.clientWidth;
+        const hiddenTravel = Math.max(rewindRailTrack.scrollWidth - viewportWidth, 0);
+        const entryTravel = viewportWidth + (overlayBaseWidth * 0.2);
+
+        return `+=${Math.max((entryTravel + hiddenTravel) * 1.85, viewportWidth)}`;
+      },
+      scrub: true,
+      markers: true,
+      invalidateOnRefresh: true,
+      animation: rewindRailTween,
+      onRefresh: () => {
+        syncRewindRailAnimation();
+      },
+    });
+
+    syncRewindRailAnimation();
 
     const detroitTween = gsap.fromTo(
       detroitPath,
@@ -192,7 +475,20 @@ export default function HomePage() {
     );
 
     return () => {
-      window.removeEventListener("skub:story-panel-progress", handleStoryProgress as EventListener);
+      storyProgressTrigger.kill();
+      storyMediaPinTimeline.kill();
+      if (signatureDelayId !== null) {
+        window.clearTimeout(signatureDelayId);
+      }
+      signatureTrigger.kill();
+      rewindTitleTrigger.kill();
+      rewindRailTrigger.kill();
+      rewindTitleTween.kill();
+      rewindRailTween.kill();
+      rewindHandoffTrigger.kill();
+      gsap.set(media, { clearProps: "opacity,visibility" });
+      gsap.set(mediaOverlay, { clearProps: "position,top,left,width,height,opacity,visibility,transformOrigin" });
+      gsap.set(mediaOverlayFill, { clearProps: "clipPath" });
       detroitTween.kill();
     };
   }, []);
@@ -263,13 +559,18 @@ export default function HomePage() {
                 />
               </div>
             </div>
-            <div ref={storyScrollPanelRef} className={styles.storyScrollPanel}>
+            <div className={styles.storyScrollPanel}>
               <div ref={storyMediaPaneRef} className={styles.storyMediaPane}>
                 <div ref={storyMediaAssetRef} className={styles.storyMediaAsset}>
                   <div
                     className={styles.storyMediaFill}
                     aria-hidden="true"
-                    style={{ "--story-image": `url(${skubQuoteImage.src})` } as CSSProperties}
+                    style={
+                      {
+                        "--story-image": `url(${skubQuoteImage.src})`,
+                        "--story-image-position": "38% center",
+                      } as CSSProperties
+                    }
                   />
                 </div>
               </div>
@@ -297,44 +598,135 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-                <p ref={storyBodyRef} className={styles.storyBody}>
-                  "...It's a new era of Tigers baseball, and we're building something different.
-                  and we're building something different. A new standard has been set, and we're about to clock in like
-                  the blue-collar people of this city. So, say what you what about us...
-                  
-                  about Detroit...
-
-                  we have unfinished business, so...lets run it back."
-                </p>
+                <div ref={storyBodyRef} className={styles.storyBody}>
+                  <div className={styles.storyBodyTop}>
+                    <div className={styles.storyBodyDivider} aria-hidden="true" />
+                    <div className={styles.storyBodyColumn}>
+                      <p className={styles.storyBodyCopy}>
+                        "...Say what you want about us.
+                      </p>
+                      <div className={styles.storyBodyInlineDetroit}>
+                        <span className={styles.storyBodyLabel}>about</span>
+                        <StoryDetroitWord className={styles.storyDetroitInline} />
+                      </div>
+                      <p className={styles.storyBodyCopy}>
+                        We have{" "}
+                        <span
+                          className={styles.storyUnfinishedBusiness}
+                          data-text="unfinished business"
+                        >
+                          unfinished business
+                        </span>
+                        , so <span className={styles.storyRunItBack}>lets run it back.</span>&quot;
+                      </p>
+                    </div>
+                  </div>
+                  <div className={styles.storySignatureSlot} aria-hidden="true">
+                    <StorySignature
+                      className={styles.storySignature}
+                      svgRef={(node) => {
+                        storySignatureRef.current = node;
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </section>
         </div>
       </section>
-      <section id="mlb-profile" className={styles.contentSection}>
-        <p className={styles.sectionKicker}>MLB PROFILE</p>
-        <h2 className={styles.sectionTitle}>SKUB AT A GLANCE</h2>
-        <p className={styles.sectionCopy}>
-          This section now sits directly behind the landing hero, so the page opens on
-          Skub and then reveals the profile layer first as the screen compresses.
-        </p>
+      <section ref={rewindSectionRef} id="mlb-profile" className={`${styles.contentSection} ${styles.rewindSection}`}>
+        <div className={styles.rewindPinSpacer}>
+          <div className={styles.rewindPinSticky}>
+            <div className={styles.rewindCopy}>
+              <svg
+                ref={rewindTitleRef}
+                viewBox="0 0 2400 320"
+                className={styles.rewindTitle}
+                aria-label="A YEAR IN REWIND."
+                role="img"
+              >
+                <text
+                  x="50%"
+                  y="54%"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className={styles.rewindGrey}
+                  ref={(node) => {
+                    if (node) {
+                      rewindGreyRefs.current[0] = node;
+                    }
+                  }}
+                >
+                  A YEAR IN REWIND.
+                </text>
+                <text
+                  x="50%"
+                  y="54%"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className={styles.rewindGreen}
+                  ref={(node) => {
+                    if (node) {
+                      rewindGreenRefs.current[0] = node;
+                    }
+                  }}
+                >
+                  A YEAR IN REWIND.
+                </text>
+              </svg>
+            </div>
+            <div className={styles.rewindRailAnchor}>
+              <div ref={rewindRailViewportRef} className={styles.rewindRailViewport}>
+                <div ref={rewindRailTrackRef} className={styles.rewindRailTrack}>
+                  {rewindPlaceholders.map((_, index) => (
+                    <div
+                      key={`rewind-placeholder-${index}`}
+                      ref={index === 0 ? rewindLeadCardRef : undefined}
+                      className={`${styles.rewindCard} ${index === 0 ? styles.rewindCardLead : ""}`}
+                    >
+                      {index === 0 ? (
+                        <div className={styles.rewindLeadMedia}>
+                          <div
+                            className={styles.rewindLeadFill}
+                            aria-hidden="true"
+                            style={
+                              {
+                                "--story-image": `url(${skubQuoteImage.src})`,
+                                "--story-image-position": "38% center",
+                              } as CSSProperties
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <div className={styles.rewindCardInner}>
+                          <span className={styles.rewindCardLabel}>{String(index + 1).padStart(2, "0")}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
       <section id="the-stats" className={styles.contentSectionAlt}>
-        <p className={styles.sectionKicker}>THE STATS</p>
-        <h2 className={styles.sectionTitle}>DOMINANT BY DESIGN</h2>
-        <p className={styles.sectionCopy}>
-          Once the profile section settles in, this is the next stop for the deeper
-          numbers and season breakdowns.
-        </p>
       </section>
       <section id="accolades" className={styles.contentSection}>
-        <p className={styles.sectionKicker}>ACCOLADES</p>
-        <h2 className={styles.sectionTitle}>HARDWARE AND HYPE</h2>
-        <p className={styles.sectionCopy}>
-          Awards, milestones, and everything else worth surfacing can live here once
-          we swap the placeholder copy for the real content.
-        </p>
       </section>
+      <div ref={storyMediaOverlayRef} className={styles.storyMediaOverlay} aria-hidden="true">
+        <div
+          ref={storyMediaOverlayFillRef}
+          className={styles.storyMediaFill}
+          style={
+            {
+              "--story-image": `url(${skubQuoteImage.src})`,
+              "--story-image-position": "38% center",
+            } as CSSProperties
+          }
+        />
+      </div>
     </main>
   );
 }
